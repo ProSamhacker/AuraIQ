@@ -11,13 +11,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     ],
     callbacks: {
         async signIn({ user }) {
+            // Always allow sign-in — DB upsert is best-effort
             if (!user.email) return false;
+
+            // Attempt to persist user — if DB fails, still allow auth
             try {
-                await upsertUser(user.email, user.name ?? undefined, user.image ?? undefined);
-                return true;
-            } catch {
-                return false;
+                await upsertUser(
+                    user.email,
+                    user.name ?? undefined,
+                    user.image ?? undefined
+                );
+            } catch (err) {
+                // Log but don't block sign-in — user can still use the app
+                console.error("[Auth] DB upsert failed (non-blocking):", err);
             }
+
+            return true;
         },
         async session({ session, token }) {
             if (session.user && token.sub) {
