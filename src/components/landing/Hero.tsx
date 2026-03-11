@@ -1,88 +1,90 @@
 import Link from "next/link";
 
+const FEATURES = [
+    { icon: "📊", label: "Channel Analysis" },
+    { icon: "🎯", label: "Gap Scanner" },
+    { icon: "🔍", label: "SEO Auditor" },
+    { icon: "🏷️", label: "Tag Generator" },
+    { icon: "🖼️", label: "Thumbnail AI" },
+    { icon: "📅", label: "Upload Scheduler" },
+];
+
 export default function Hero() {
     return (
-        <section className="relative pt-32 pb-20 px-4 overflow-hidden">
-            {/* Subtle gradient background */}
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-white pointer-events-none" />
-            <div className="absolute top-20 right-0 w-96 h-96 bg-blue-100 rounded-full opacity-20 blur-3xl pointer-events-none" />
+        <section className="relative pt-24 sm:pt-32 pb-16 sm:pb-28 px-4 overflow-hidden bg-[#0a0a0f]">
+            {/* Animated mesh gradient background */}
+            <div className="absolute inset-0 pointer-events-none">
+                <div className="absolute top-[-20%] left-[10%] w-[500px] h-[500px] bg-violet-600/20 rounded-full blur-[120px] glow-pulse" />
+                <div className="absolute top-[10%] right-[5%] w-[400px] h-[400px] bg-indigo-600/15 rounded-full blur-[100px] glow-pulse" style={{ animationDelay: "1s" }} />
+                <div className="absolute bottom-0 left-[30%] w-[300px] h-[300px] bg-sky-600/10 rounded-full blur-[80px] glow-pulse" style={{ animationDelay: "2s" }} />
+                {/* Grid lines */}
+                <div className="absolute inset-0 bg-[linear-gradient(rgba(124,58,237,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(124,58,237,0.03)_1px,transparent_1px)] bg-[size:60px_60px]" />
+            </div>
 
-            <div className="relative max-w-4xl mx-auto text-center">
+            <div className="relative max-w-5xl mx-auto text-center">
                 {/* Label */}
-                <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-full px-4 py-1.5 mb-6 animate-fade-in">
-                    <span className="w-2 h-2 bg-blue-500 rounded-full radar-dot" />
-                    <span className="text-sm font-medium text-blue-700">
-                        Strategic YouTube Intelligence
-                    </span>
+                <div className="animate-fade-in-delay">
+                    <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-1.5 mb-7">
+                        <span className="w-2 h-2 bg-violet-500 rounded-full radar-dot" />
+                        <span className="text-sm font-medium text-gray-300">
+                            YouTube Intelligence Suite — 5 Powerful AI Tools
+                        </span>
+                    </div>
                 </div>
 
                 {/* Headline */}
-                <h1 className="text-5xl sm:text-6xl font-extrabold text-gray-900 leading-tight tracking-tight mb-6 animate-fade-in">
-                    Stop Guessing{" "}
-                    <span className="text-blue-600">What to Upload</span> Next.
+                <h1 className="text-4xl sm:text-5xl lg:text-7xl font-extrabold text-white leading-[1.1] tracking-tight mb-6 animate-fade-in-delay-2">
+                    Find Your Next{" "}
+                    <span className="shimmer-text">Viral Gap</span>
+                    {" "}Before Anyone Else.
                 </h1>
 
                 {/* Subheadline */}
-                <p className="text-lg sm:text-xl text-gray-500 max-w-2xl mx-auto mb-10 leading-relaxed animate-fade-in-delay">
-                    AI Gap Radar analyzes competitor velocity, audience frustration, and
-                    topic saturation to reveal high-opportunity YouTube content gaps —
-                    before your competitors see them.
+                <p className="text-base sm:text-xl text-gray-400 max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed animate-fade-in-delay-3">
+                    AuraIQ scans competitor channels using statistical algorithms and AI to surface
+                    untapped YouTube content opportunities — before your competitors see them.
                 </p>
 
+                {/* Feature Pills */}
+                <div className="flex flex-wrap items-center justify-center gap-2.5 max-w-2xl mx-auto mb-12 animate-fade-in-delay-3">
+                    {FEATURES.map(f => (
+                        <div
+                            key={f.label}
+                            className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-2 hover:border-violet-500/50 hover:bg-violet-500/10 transition-all cursor-default"
+                        >
+                            <span className="text-sm">{f.icon}</span>
+                            <span className="text-sm font-medium text-gray-300">{f.label}</span>
+                        </div>
+                    ))}
+                </div>
+
                 {/* CTA Buttons */}
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8 animate-fade-in-delay-2">
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
                     <Link
-                        href="/auth/signin"
-                        className="inline-flex items-center gap-2 bg-blue-600 text-white px-8 py-3.5 rounded-xl font-semibold text-base hover:bg-blue-700 transition-all hover:shadow-lg hover:shadow-blue-200 active:scale-95"
+                        href="#waitlist"
+                        className="inline-flex items-center gap-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white px-8 py-4 rounded-xl font-semibold text-base hover:opacity-90 transition-all hover:shadow-xl hover:shadow-violet-500/30 active:scale-95 glow-purple"
                     >
-                        <span className="w-2 h-2 bg-blue-300 rounded-full radar-dot" />
-                        Run Your First Gap Scan
+                        <span className="w-2 h-2 bg-white/60 rounded-full radar-dot" />
+                        Join the Waitlist — Free
                     </Link>
                     <Link
                         href="#how-it-works"
-                        className="inline-flex items-center gap-2 border border-gray-200 text-gray-700 px-8 py-3.5 rounded-xl font-medium text-base hover:border-blue-400 hover:text-blue-700 transition-colors"
+                        className="inline-flex items-center gap-2 glass border border-white/10 text-gray-300 px-8 py-4 rounded-xl font-medium text-base hover:border-violet-500/40 hover:text-white transition-all"
                     >
-                        View How It Works →
+                        See How It Works →
                     </Link>
                 </div>
 
-                {/* Trust line */}
-                <p className="text-sm text-gray-400 animate-fade-in-delay-2">
-                    Built for Tech & AI creators who want smarter growth — not random uploads.
-                </p>
-
-                {/* Social trust badges */}
-                <div className="mt-12 flex items-center justify-center gap-8 flex-wrap opacity-60">
-                    <div className="flex items-center gap-2">
-                        <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                            <path
-                                fillRule="evenodd"
-                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                clipRule="evenodd"
-                            />
-                        </svg>
-                        <span className="text-sm text-gray-500 font-medium">No credit card</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                            <path
-                                fillRule="evenodd"
-                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                clipRule="evenodd"
-                            />
-                        </svg>
-                        <span className="text-sm text-gray-500 font-medium">Deterministic + AI hybrid engine</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                            <path
-                                fillRule="evenodd"
-                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                clipRule="evenodd"
-                            />
-                        </svg>
-                        <span className="text-sm text-gray-500 font-medium">Results in minutes</span>
-                    </div>
+                {/* Trust badges */}
+                <div className="flex items-center justify-center gap-6 flex-wrap">
+                    {["No credit card required", "Hybrid AI + statistical engine", "Results in under 60s", "Beats VidIQ & TubeBuddy"].map(badge => (
+                        <div key={badge} className="flex items-center gap-2 opacity-60 hover:opacity-100 transition-opacity">
+                            <svg className="w-4 h-4 text-violet-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                            <span className="text-sm text-gray-400 font-medium">{badge}</span>
+                        </div>
+                    ))}
                 </div>
             </div>
         </section>

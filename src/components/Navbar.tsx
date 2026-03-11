@@ -7,44 +7,30 @@ export default function Navbar() {
     const { data: session } = useSession();
 
     return (
-        <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
+        <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0f]/80 backdrop-blur-xl border-b border-white/5">
             <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
                 {/* Logo */}
-                <Link href="/" className="flex items-center gap-2 group">
-                    <div className="relative flex items-center justify-center w-8 h-8">
-                        <div className="w-3 h-3 bg-blue-600 rounded-full radar-dot" />
-                        <div className="absolute w-7 h-7 border-2 border-blue-400 rounded-full opacity-50 group-hover:opacity-80 transition-opacity" />
-                    </div>
-                    <div className="flex flex-col leading-none">
-                        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
-                            AuraIQ
-                        </span>
-                        <span className="text-sm font-bold text-gray-900">AI Gap Radar</span>
-                    </div>
+                <Link href="/" className="flex items-center gap-2.5 group">
+                    <img src="/auraiq-logo.png" alt="AuraIQ Logo" className="w-10 h-10 object-contain" />
+                    <span className="text-base font-bold text-white tracking-tight">AuraIQ</span>
                 </Link>
 
                 {/* Nav links */}
                 <div className="hidden md:flex items-center gap-8">
-                    <Link
-                        href="#how-it-works"
-                        className="text-sm text-gray-600 hover:text-blue-600 transition-colors"
-                    >
+                    <Link href="#why-auraiq" className="text-sm text-gray-400 hover:text-white transition-colors">
+                        Why AuraIQ
+                    </Link>
+                    <Link href="#how-it-works" className="text-sm text-gray-400 hover:text-white transition-colors">
                         How It Works
                     </Link>
-                    <Link
-                        href="#sample-output"
-                        className="text-sm text-gray-600 hover:text-blue-600 transition-colors"
-                    >
-                        Sample Output
+                    <Link href="#waitlist" className="text-sm text-gray-400 hover:text-white transition-colors">
+                        Early Access
                     </Link>
-                    {session ? (
-                        <Link
-                            href="/dashboard"
-                            className="text-sm text-gray-600 hover:text-blue-600 transition-colors"
-                        >
+                    {session && (
+                        <Link href="/dashboard" className="text-sm text-gray-400 hover:text-white transition-colors">
                             Dashboard
                         </Link>
-                    ) : null}
+                    )}
                 </div>
 
                 {/* Auth CTA */}
@@ -57,33 +43,30 @@ export default function Navbar() {
                                     <img
                                         src={session.user.image}
                                         alt={session.user.name ?? "User"}
-                                        className="w-7 h-7 rounded-full"
+                                        className="w-7 h-7 rounded-full ring-1 ring-violet-500/40"
                                     />
                                 )}
-                                <span className="text-sm text-gray-700 hidden sm:block">
+                                <span className="text-sm text-gray-300 hidden sm:block">
                                     {session.user?.name?.split(" ")[0]}
                                 </span>
                             </div>
                             <button
                                 onClick={() => signOut({ callbackUrl: "/" })}
-                                className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
+                                className="text-sm text-gray-500 hover:text-white transition-colors"
                             >
                                 Sign out
                             </button>
                         </div>
                     ) : (
                         <>
-                            <Link
-                                href="/auth/signin"
-                                className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
-                            >
+                            <Link href="/auth/signin" className="text-sm text-gray-400 hover:text-white transition-colors">
                                 Sign in
                             </Link>
                             <Link
-                                href="/auth/signin"
-                                className="text-sm bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                                href="#waitlist"
+                                className="text-sm bg-gradient-to-r from-violet-600 to-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:opacity-90 transition-all hover:shadow-lg hover:shadow-violet-500/25 active:scale-95"
                             >
-                                Start Free Scan
+                                Join Waitlist
                             </Link>
                         </>
                     )}

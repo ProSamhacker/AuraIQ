@@ -2,36 +2,41 @@ import Link from "next/link";
 
 export default function Footer() {
     return (
-        <footer className="bg-gray-900 text-gray-400 py-12 px-4">
-            <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-                {/* Brand */}
-                <div className="flex flex-col items-center md:items-start gap-1">
-                    <div className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 bg-blue-500 rounded-full radar-dot" />
-                        <span className="text-white font-bold text-sm">AI Gap Radar</span>
+        <footer className="bg-[#060608] text-gray-500 py-14 px-4 border-t border-white/5">
+            <div className="max-w-5xl mx-auto">
+                <div className="flex flex-col md:flex-row items-center md:items-start justify-between gap-10 mb-10">
+                    {/* Brand */}
+                    <div className="flex flex-col items-center md:items-start gap-2">
+                        <div className="flex items-center gap-2.5">
+                            <img src="/auraiq-logo.png" alt="AuraIQ Logo" className="w-9 h-9 object-contain" />
+                            <span className="text-white font-bold text-lg">AuraIQ</span>
+                        </div>
+                        <p className="text-xs text-gray-600 max-w-xs text-center md:text-left">
+                            Statistical gap detection for YouTube creators who want to grow smarter, not just harder.
+                        </p>
+                        <p className="text-xs text-gray-700 mt-1">
+                            Part of <a href="https://aurionstack.dev" target="_blank" rel="noopener noreferrer" className="text-violet-700 hover:text-violet-500 transition-colors">AurionStack</a>
+                        </p>
                     </div>
-                    <span className="text-xs text-gray-500">by AuraIQ</span>
-                    <p className="text-xs text-gray-500 mt-1">
-                        Strategic Intelligence for Creators
+
+                    {/* Links */}
+                    <div className="grid grid-cols-2 gap-x-16 gap-y-2 text-sm">
+                        <Link href="#how-it-works" className="hover:text-white transition-colors">How It Works</Link>
+                        <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
+                        <Link href="#why-auraiq" className="hover:text-white transition-colors">Why AuraIQ</Link>
+                        <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
+                        <Link href="#waitlist" className="hover:text-white transition-colors">Join Waitlist</Link>
+                        <Link href="mailto:hello@aurionstack.dev" className="hover:text-white transition-colors">Contact</Link>
+                    </div>
+                </div>
+
+                <div className="border-t border-white/5 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <p className="text-xs text-gray-700">
+                        © {new Date().getFullYear()} AuraIQ by AurionStack. All rights reserved.
                     </p>
-                </div>
-
-                {/* Links */}
-                <div className="flex items-center gap-6">
-                    <Link href="/privacy" className="text-sm hover:text-blue-400 transition-colors">
-                        Privacy
-                    </Link>
-                    <Link href="/terms" className="text-sm hover:text-blue-400 transition-colors">
-                        Terms
-                    </Link>
-                    <Link href="mailto:hello@nocreditai.com" className="text-sm hover:text-blue-400 transition-colors">
-                        Contact
-                    </Link>
-                </div>
-
-                {/* Copyright */}
-                <div className="text-xs text-gray-600">
-                    © {new Date().getFullYear()} AuraIQ. All rights reserved.
+                    <p className="text-xs text-gray-700">
+                        Built by a creator, for creators ⚡
+                    </p>
                 </div>
             </div>
         </footer>

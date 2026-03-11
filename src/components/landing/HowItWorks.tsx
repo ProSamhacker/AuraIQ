@@ -1,93 +1,92 @@
 const steps = [
     {
         number: "01",
-        title: "Scan Competitors",
+        title: "Channel Deep Analysis",
         description:
-            "We analyze their latest videos, view velocity (views per day), topic patterns, and upload gaps. We detect what's accelerating — and what's being ignored.",
-        details: ["View velocity per channel", "Topic pattern detection", "Upload gap analysis"],
-        color: "bg-blue-50 border-blue-200",
-        numColor: "text-blue-600",
+            "Analyze any YouTube channel with 500+ videos via YouTube API. Get view velocity, engagement rates, upload consistency, revenue estimates, and competitor benchmarking — all computed from real data.",
+        details: ["Bayesian engagement scoring", "EMA trend detection", "Revenue estimation by niche CPM", "Upload schedule optimizer"],
+        accent: "from-violet-600/20 to-violet-600/5",
+        border: "border-violet-500/30",
+        numColor: "text-violet-400",
+        glow: "rgba(124,58,237,0.3)",
     },
     {
         number: "02",
-        title: "Mine Audience Frustrations",
+        title: "Statistical Gap Detection",
         description:
-            "We scan comment sections to identify repeated complaints, missing explanations, and requests for deeper coverage. Your next video should solve pain — not chase keywords.",
-        details: ["Complaint phrase detection", "Recurring request identification", "Frustration scoring"],
-        color: "bg-emerald-50 border-emerald-200",
-        numColor: "text-emerald-600",
+            "Our 7-signal scoring engine uses Wilson score intervals, exponential decay weighting, and TF-IDF analysis to find content gaps with statistical confidence — not guesswork.",
+        details: ["Wilson score engagement reliability", "Exponential decay velocity scoring", "TF-IDF keyword relevance", "Frustration NLP analysis"],
+        accent: "from-sky-600/20 to-sky-600/5",
+        border: "border-sky-500/30",
+        numColor: "text-sky-400",
+        glow: "rgba(14,165,233,0.3)",
     },
     {
         number: "03",
-        title: "Reveal Strategic Content Gaps",
+        title: "SEO & Tag Optimization",
         description:
-            "You receive top 3 high-confidence opportunities with gap score, hook, format recommendation, and monetization angle. No vague ideas. Just actionable direction.",
-        details: ["Gap score (data-backed)", "Suggested hook", "Monetization angle"],
-        color: "bg-blue-50 border-blue-200",
-        numColor: "text-blue-600",
+            "Audit your video title, description, and tags with our deterministic SEO scorer. Get AI-improved titles, 50 optimized tags, and specific recommendations to maximise discoverability.",
+        details: ["Title SEO scoring (0–100)", "Keyword density analysis", "50 AI-generated tags", "Competitor tag extraction"],
+        accent: "from-emerald-600/20 to-emerald-600/5",
+        border: "border-emerald-500/30",
+        numColor: "text-emerald-400",
+        glow: "rgba(16,185,129,0.3)",
+    },
+    {
+        number: "04",
+        title: "Thumbnail & Revenue Intelligence",
+        description:
+            "Get AI-generated thumbnail concepts with colour psychology, text overlay tips, and CTR benchmarks. Plus accurate revenue projections based on niche-specific CPM data.",
+        details: ["3 AI thumbnail concepts", "CTR optimisation tips", "Niche CPM benchmarks", "Monthly revenue projections"],
+        accent: "from-amber-600/20 to-amber-600/5",
+        border: "border-amber-500/30",
+        numColor: "text-amber-400",
+        glow: "rgba(245,158,11,0.3)",
     },
 ];
 
 export default function HowItWorks() {
     return (
-        <section id="how-it-works" className="py-20 px-4 bg-gray-50">
-            <div className="max-w-5xl mx-auto">
-                <div className="text-center mb-14">
-                    <h2 className="text-4xl font-bold text-gray-900 mb-4">
+        <section id="how-it-works" className="scroll-mt-16 py-24 px-4 bg-[#0a0a0f] relative overflow-hidden">
+            <div className="absolute inset-0 pointer-events-none">
+                <div className="absolute top-1/3 left-0 w-[350px] h-[350px] bg-violet-600/8 rounded-full blur-[100px]" />
+                <div className="absolute bottom-0 right-0 w-[300px] h-[300px] bg-sky-600/8 rounded-full blur-[100px]" />
+                <div className="absolute inset-0 bg-[linear-gradient(rgba(124,58,237,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(124,58,237,0.03)_1px,transparent_1px)] bg-[size:60px_60px]" />
+            </div>
+            <div className="relative max-w-5xl mx-auto">
+                <div className="text-center mb-16">
+                    <div className="inline-flex items-center gap-2 glass rounded-full px-4 py-1.5 mb-5">
+                        <span className="text-sm font-medium text-gray-400">How It Works</span>
+                    </div>
+                    <h2 className="text-4xl sm:text-5xl font-bold text-white mb-4 leading-tight">
                         From Noise to Opportunity{" "}
-                        <span className="text-blue-600">in Minutes.</span>
+                        <span className="shimmer-text">in Minutes.</span>
                     </h2>
-                    <p className="text-gray-500 text-lg">
-                        A hybrid deterministic + AI system. No guessing.
-                    </p>
+                    <p className="text-gray-400 text-lg">A hybrid deterministic + AI system. No guessing.</p>
                 </div>
 
-                <div className="relative">
-                    {/* Connecting line */}
-                    <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-blue-200 via-blue-300 to-blue-200 -translate-x-1/2" />
-
-                    <div className="space-y-12">
-                        {steps.map((step, i) => (
-                            <div
-                                key={step.number}
-                                className={`relative flex flex-col md:flex-row gap-8 items-start md:items-center ${i % 2 === 1 ? "md:flex-row-reverse" : ""
-                                    }`}
-                            >
-                                {/* Number bubble */}
-                                <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 w-12 h-12 bg-white border-2 border-blue-300 rounded-full items-center justify-center z-10">
-                                    <span className="text-sm font-bold text-blue-600">{step.number}</span>
-                                </div>
-
-                                {/* Card */}
-                                <div className={`md:w-[calc(50%-3rem)] rounded-2xl border p-7 ${step.color}`}>
-                                    <div className={`text-3xl font-extrabold mb-2 ${step.numColor} md:hidden`}>
-                                        {step.number}
-                                    </div>
-                                    <h3 className="text-xl font-bold text-gray-900 mb-3">{step.title}</h3>
-                                    <p className="text-gray-600 mb-4 leading-relaxed">{step.description}</p>
-                                    <ul className="space-y-1.5">
-                                        {step.details.map((d) => (
-                                            <li key={d} className="flex items-center gap-2 text-sm text-gray-600">
-                                                <span className="w-4 h-4 bg-blue-600 rounded-full flex-shrink-0 flex items-center justify-center">
-                                                    <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                                        <path
-                                                            fillRule="evenodd"
-                                                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                                            clipRule="evenodd"
-                                                        />
-                                                    </svg>
-                                                </span>
-                                                {d}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-
-                                {/* Spacer on the other side */}
-                                <div className="hidden md:block md:w-[calc(50%-3rem)]" />
+                <div className="grid md:grid-cols-2 gap-6">
+                    {steps.map((step) => (
+                        <div
+                            key={step.number}
+                            className={`gradient-border p-7 bg-gradient-to-br ${step.accent} hover:scale-[1.02] transition-all duration-300 group cursor-default`}
+                            style={{ boxShadow: `0 0 0 1px ${step.glow.replace("0.3", "0.15")}, inset 0 0 30px ${step.glow.replace("0.3", "0.05")}` }}
+                        >
+                            <div className={`text-3xl font-extrabold mb-3 ${step.numColor} font-mono`}>
+                                {step.number}
                             </div>
-                        ))}
-                    </div>
+                            <h3 className="text-xl font-bold text-white mb-3">{step.title}</h3>
+                            <p className="text-gray-400 mb-5 leading-relaxed text-sm">{step.description}</p>
+                            <ul className="space-y-2">
+                                {step.details.map((d) => (
+                                    <li key={d} className="flex items-center gap-2 text-sm text-gray-300">
+                                        <span className={`w-1.5 h-1.5 rounded-full bg-current ${step.numColor} flex-shrink-0`} />
+                                        {d}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    ))}
                 </div>
             </div>
         </section>

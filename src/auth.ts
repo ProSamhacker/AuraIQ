@@ -34,9 +34,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             }
             return session;
         },
-        async jwt({ token, user }) {
+        async jwt({ token, user, account }) {
             if (user) {
                 token.sub = user.id;
+                // Persist email + name so X-Session-Token decoding works in API routes
+                if (user.email) token.email = user.email;
+                if (user.name) token.name = user.name;
+            }
+            // On subsequent requests, profile data comes from account/profile
+            if (account?.providerAccountId && !token.email) {
+                // email may already be in token from the initial sign-in above
             }
             return token;
         },

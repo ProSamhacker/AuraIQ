@@ -8,41 +8,56 @@ export const AnalyzeRequestSchema = z.object({
         z.object({
             title: z.string(),
             views: z.number().nonnegative(),
+            likes: z.number().nonnegative().default(0),
+            comments: z.number().nonnegative().default(0),
             uploadDate: z.string(),
             url: z.string(),
             channel: z.string(),
+            duration: z.string().optional(),
+            tags: z.array(z.string()).optional(),
+            description: z.string().optional(),
         })
-    ).min(1).max(60),
+    ).min(1).max(100),
     comments: z.array(
         z.object({
             text: z.string().max(500),
             videoUrl: z.string().optional(),
+            likeCount: z.number().optional(),
+            authorName: z.string().optional(),
         })
-    ).max(150),
+    ).max(200),
     searchResults: z.array(
         z.object({
             title: z.string(),
             channel: z.string(),
             views: z.number().nonnegative(),
+            likes: z.number().nonnegative().default(0),
             uploadDate: z.string(),
+            subscriberCount: z.number().optional(),
         })
-    ).max(20),
+    ).max(30),
 });
 
 export type AnalyzeRequest = z.infer<typeof AnalyzeRequestSchema>;
 
-// AI output schema (strict enforcement)
+// Enhanced AI output schema
 export const GapItemSchema = z.object({
-    title: z.string().min(5).max(150),
+    title: z.string().min(5).max(300),
     gapScore: z.number().min(0).max(10),
-    reasoning: z.string().min(20).max(500),
-    hook: z.string().min(10).max(200),
-    format: z.string().min(5).max(100),
-    monetizationAngle: z.string().min(10).max(200),
+    reasoning: z.string().min(10).max(1500),
+    hook: z.string().min(5).max(500),
+    format: z.string().min(3).max(300),
+    monetizationAngle: z.string().min(5).max(500),
+    targetAudience: z.string().min(5).max(300).optional(),
+    contentOutline: z.array(z.string()).max(8).optional(),
+    seoTips: z.array(z.string()).max(5).optional(),
+    competitorWeakness: z.string().max(500).optional(),
 });
 
 export const GapOutputSchema = z.object({
-    gaps: z.array(GapItemSchema).length(3),
+    gaps: z.array(GapItemSchema).min(1).max(5),
+    overallOpportunity: z.string().max(500).optional(),
+    recommendedNiche: z.string().max(200).optional(),
 });
 
 export type GapItem = z.infer<typeof GapItemSchema>;

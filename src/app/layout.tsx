@@ -10,23 +10,23 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "AI Gap Radar — Strategic YouTube Opportunity Detection | AuraIQ",
+  title: "AuraIQ — YouTube Content Gap Detection | AurionStack",
   description:
-    "AI Gap Radar analyzes competitor velocity, audience frustration, and topic saturation to reveal high-opportunity YouTube content gaps — before your competitors see them.",
+    "AuraIQ uses statistical algorithms and AI to detect high-opportunity YouTube content gaps before your competitors — powered by AurionStack.",
   keywords: [
     "YouTube content gaps",
     "AI content strategy",
     "YouTube SEO",
     "content opportunity detection",
-    "Tech YouTube",
-    "AI creators",
     "AuraIQ",
+    "AurionStack",
+    "YouTube gap analysis",
   ],
-  authors: [{ name: "AuraIQ" }],
+  authors: [{ name: "AurionStack" }],
   openGraph: {
-    title: "AI Gap Radar — Stop Guessing What to Upload Next",
+    title: "AuraIQ — Stop Guessing What to Upload Next",
     description:
-      "Strategic YouTube opportunity detection for Tech & AI creators. Data-driven gap analysis powered by AI.",
+      "Strategic YouTube content gap detection for creators. Data-driven opportunity analysis powered by AI.",
     type: "website",
     siteName: "AuraIQ",
   },
@@ -40,7 +40,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className={inter.variable}>
       <head />
-      <body className="min-h-screen bg-gray-50"><Providers>{children}</Providers></body>
+      <body className="min-h-screen bg-[#0a0a0f]"><Providers>{children}</Providers></body>
     </html>
   );
 }

@@ -1,66 +1,72 @@
-const audiences = [
-    "Tech YouTubers (10k–200k subs)",
-    "AI tool reviewers",
-    "Developer educators",
-    "Product breakdown channels",
+const vsComparison = [
+    { feature: "Channel Analysis (500+ videos)", gapradar: true, vidiq: true,  tubebuddy: false },
+    { feature: "Statistical Gap Detection",       gapradar: true, vidiq: false, tubebuddy: false },
+    { feature: "Wilson Score Engagement",          gapradar: true, vidiq: false, tubebuddy: false },
+    { feature: "SEO Audit (Title + Desc + Tags)", gapradar: true, vidiq: true,  tubebuddy: true  },
+    { feature: "AI Tag Generator (50 tags)",      gapradar: true, vidiq: true,  tubebuddy: true  },
+    { feature: "Thumbnail AI Concepts",           gapradar: true, vidiq: false, tubebuddy: false },
+    { feature: "Upload Schedule Optimizer",       gapradar: true, vidiq: false, tubebuddy: false },
+    { feature: "Audience Frustration Analysis",   gapradar: true, vidiq: false, tubebuddy: false },
+    { feature: "Content Outline Generator",       gapradar: true, vidiq: false, tubebuddy: false },
+    { feature: "Abandonment Signal Detection",    gapradar: true, vidiq: false, tubebuddy: false },
+    { feature: "Free to use",                     gapradar: true, vidiq: false, tubebuddy: false },
 ];
 
-const benefits = [
-    { icon: "📈", title: "Long-term growth", desc: "Not random uploads — strategic positioning." },
-    { icon: "🎯", title: "Authority building", desc: "Fill the gaps your competitors haven't noticed." },
-    { icon: "💰", title: "Monetization efficiency", desc: "Target topics with real sponsorship angles." },
-    { icon: "🧠", title: "Smarter decisions", desc: "Data-backed confidence, not gut feelings." },
-];
+const Check = ({ on, highlight }: { on: boolean; highlight?: boolean }) =>
+    on ? (
+        <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full ${highlight ? "bg-violet-500/20 text-violet-400" : "text-gray-400"} font-bold text-sm`}>✓</span>
+    ) : (
+        <span className="text-gray-700 text-sm">—</span>
+    );
 
 export default function WhySection() {
     return (
-        <section className="py-20 px-4 bg-gray-50">
+        <section id="why-auraiq" className="scroll-mt-16 py-16 sm:py-24 px-4 bg-[#0d0d14]">
             <div className="max-w-5xl mx-auto">
-                <div className="text-center mb-14">
-                    <h2 className="text-4xl font-bold text-gray-900 mb-4">
-                        Built for <span className="text-blue-600">Serious Creators.</span>
+                <div className="text-center mb-10 sm:mb-16">
+                    <div className="inline-flex items-center gap-2 glass rounded-full px-4 py-1.5 mb-5">
+                        <span className="text-sm font-medium text-gray-400">Comparison</span>
+                    </div>
+                    <h2 className="text-3xl sm:text-5xl font-bold text-white mb-4 leading-tight">
+                        Why AuraIQ Beats{" "}
+                        <span className="shimmer-text">VidIQ &amp; TubeBuddy.</span>
                     </h2>
-                    <p className="text-gray-500 text-lg">Not for hobbyists.</p>
+                    <p className="text-gray-400 text-base sm:text-lg">More features. Statistical accuracy. Free.</p>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-10 items-start">
-                    {/* Audience */}
-                    <div>
-                        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">
-                            Designed for:
-                        </h3>
-                        <ul className="space-y-3">
-                            {audiences.map((a) => (
-                                <li key={a} className="flex items-center gap-3 text-base text-gray-700 font-medium">
-                                    <span className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                                        <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                            <path
-                                                fillRule="evenodd"
-                                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                                clipRule="evenodd"
-                                            />
-                                        </svg>
-                                    </span>
-                                    {a}
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-
-                    {/* Benefits */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {benefits.map((b) => (
-                            <div
-                                key={b.title}
-                                className="bg-white border border-gray-200 rounded-xl p-5 hover:border-blue-300 hover:shadow-sm transition-all"
-                            >
-                                <div className="text-2xl mb-2">{b.icon}</div>
-                                <div className="font-semibold text-gray-900 mb-1">{b.title}</div>
-                                <div className="text-sm text-gray-500">{b.desc}</div>
-                            </div>
-                        ))}
+                {/* Scrollable table wrapper on mobile */}
+                <div className="glass rounded-2xl overflow-hidden border border-white/8">
+                    <div className="overflow-x-auto">
+                        <table className="w-full min-w-[480px]">
+                            <thead>
+                                <tr className="border-b border-white/8 bg-white/5">
+                                    <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider w-1/2">Feature</th>
+                                    <th className="px-3 py-3 text-center">
+                                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-violet-500/20 border border-violet-500/30 text-xs font-bold text-violet-300 whitespace-nowrap">
+                                            ✨ AuraIQ
+                                        </span>
+                                    </th>
+                                    <th className="px-3 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">VidIQ</th>
+                                    <th className="px-3 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">TubeBuddy</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {vsComparison.map((row, i) => (
+                                    <tr key={row.feature} className={`border-b border-white/5 hover:bg-white/3 transition-colors ${i % 2 === 0 ? "" : "bg-white/2"}`}>
+                                        <td className="px-4 py-3 text-sm text-gray-300">{row.feature}</td>
+                                        <td className="px-3 py-3 text-center"><Check on={row.gapradar} highlight /></td>
+                                        <td className="px-3 py-3 text-center"><Check on={row.vidiq} /></td>
+                                        <td className="px-3 py-3 text-center"><Check on={row.tubebuddy} /></td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
+
+                <p className="text-center text-xs sm:text-sm text-gray-600 mt-4">
+                    * VidIQ and TubeBuddy require paid plans for most features. AuraIQ is free during early access.
+                </p>
             </div>
         </section>
     );

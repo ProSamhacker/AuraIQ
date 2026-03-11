@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // CORS is handled dynamically in /api/analyze/route.ts (required for credentials: include)
 };
 
 export default nextConfig;

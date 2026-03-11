@@ -8,6 +8,12 @@ export const users = pgTable("users", {
     createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const waitlist = pgTable("waitlist", {
+    id: uuid("id").defaultRandom().primaryKey(),
+    email: text("email").unique().notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const scans = pgTable("scans", {
     id: uuid("id").defaultRandom().primaryKey(),
     userId: uuid("user_id")
@@ -17,6 +23,7 @@ export const scans = pgTable("scans", {
     competitors: jsonb("competitors").notNull().$type<string[]>(),
     rawData: jsonb("raw_data").$type<Record<string, unknown>>(),
     result: jsonb("result").$type<ScanResult>(),
+    analytics: jsonb("analytics").$type<ScanAnalytics>(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -27,6 +34,8 @@ export type NewScan = typeof scans.$inferInsert;
 
 export interface ScanResult {
     gaps: GapItem[];
+    overallOpportunity?: string;
+    recommendedNiche?: string;
 }
 
 export interface GapItem {
@@ -36,4 +45,20 @@ export interface GapItem {
     hook: string;
     format: string;
     monetizationAngle: string;
+    targetAudience?: string;
+    contentOutline?: string[];
+    seoTips?: string[];
+    competitorWeakness?: string;
+}
+
+export interface ScanAnalytics {
+    velocity: { score: number; insight: string; weeklyGrowthRate: number };
+    saturation: { score: number; insight: string; competitionLevel: string };
+    frustration: { score: number; topKeywords: string[]; painPoints: string[] };
+    engagement: { score: number; avgLikeRate: number; avgCommentRate: number };
+    trend: { score: number; trend: string; insight: string };
+    competition: { score: number; difficulty: string; insight: string };
+    uploadSchedule: { bestDay: string; bestHour: number; insight: string };
+    revenueEstimate: { low: number; mid: number; high: number };
+    suggestedTags: string[];
 }

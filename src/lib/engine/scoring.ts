@@ -1,24 +1,33 @@
-// Deterministic Scoring Engine
-// Phase 1: Pure data-driven gap detection before any AI call
+// Advanced Deterministic Scoring Engine v2.0
+// Real statistical algorithms for YouTube content gap detection
 
 export interface VideoData {
     title: string;
     views: number;
-    uploadDate: string; // ISO string
+    likes: number;
+    comments: number;
+    uploadDate: string;
     url: string;
     channel: string;
+    duration?: string;
+    tags?: string[];
+    description?: string;
 }
 
 export interface CommentData {
     text: string;
     videoUrl?: string;
+    likeCount?: number;
+    authorName?: string;
 }
 
 export interface SearchResult {
     title: string;
     channel: string;
     views: number;
+    likes: number;
     uploadDate: string;
+    subscriberCount?: number;
 }
 
 export interface ScoringInput {
@@ -29,11 +38,15 @@ export interface ScoringInput {
 }
 
 export interface ScoreBreakdown {
-    velocityScore: number;      // 0-10
-    saturationScore: number;    // 0-10 (10 = low saturation = good)
-    frustrationScore: number;   // 0-10
-    abandonmentScore: number;   // 0-10
-    compositeScore: number;     // 0-10 weighted
+    velocityScore: number;
+    saturationScore: number;
+    frustrationScore: number;
+    abandonmentScore: number;
+    engagementScore: number;
+    trendMomentum: number;
+    competitionScore: number;
+    compositeScore: number;
+    confidence: number;
 }
 
 export interface GapCandidate {
@@ -43,7 +56,15 @@ export interface GapCandidate {
     topFrustrationKeywords: string[];
     velocityInsight: string;
     saturationInsight: string;
+    trendInsight: string;
+    competitionInsight: string;
+    suggestedTags: string[];
+    estimatedViews: { low: number; mid: number; high: number };
+    bestUploadDay: string;
+    bestUploadHour: number;
 }
+
+// ─── Statistical Utilities ───────────────────────────────────────────────────
 
 const STOP_WORDS = new Set([
     "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for",
@@ -63,8 +84,53 @@ const FRUSTRATION_PHRASES = [
     "for beginners", "too complex", "too complicated", "simplified", "simpler version",
     "update", "updated version", "2025", "2026", "latest", "current",
     "alternative", "better way", "easier way", "without", "error", "fix",
+    "waste of time", "misleading", "clickbait", "didn't help", "useless",
+    "wrong", "incorrect", "mistake", "bug", "issue", "problem",
+    "how do i", "how can i", "help me", "please help", "anyone know",
 ];
 
+/** Wilson score lower bound for engagement reliability */
+function wilsonScoreLowerBound(positives: number, total: number, confidence = 1.96): number {
+    if (total === 0) return 0;
+    const p = positives / total;
+    const z = confidence;
+    const denominator = 1 + z * z / total;
+    const center = p + z * z / (2 * total);
+    const spread = z * Math.sqrt((p * (1 - p) + z * z / (4 * total)) / total);
+    return (center - spread) / denominator;
+}
+
+/** Exponential decay weight: recent data matters more */
+function exponentialDecayWeight(daysAgo: number, halfLife = 30): number {
+    return Math.exp(-0.693 * daysAgo / halfLife);
+}
+
+/** Exponential Moving Average for trend detection */
+function computeEMA(values: number[], period: number): number[] {
+    if (values.length === 0) return [];
+    const k = 2 / (period + 1);
+    const ema: number[] = [values[0]];
+    for (let i = 1; i < values.length; i++) {
+        ema.push(values[i] * k + ema[i - 1] * (1 - k));
+    }
+    return ema;
+}
+
+/** TF-IDF score for keyword relevance in a corpus of titles */
+function computeTFIDF(keyword: string, titles: string[]): number {
+    const kwWords = keyword.toLowerCase().split(/\s+/).filter(w => !STOP_WORDS.has(w));
+    if (kwWords.length === 0 || titles.length === 0) return 0;
+
+    let totalScore = 0;
+    for (const word of kwWords) {
+        const tf = titles.filter(t => t.toLowerCase().includes(word)).length / titles.length;
+        const idf = Math.log(titles.length / Math.max(1, titles.filter(t => t.toLowerCase().includes(word)).length));
+        totalScore += tf * (1 + idf);
+    }
+    return totalScore / kwWords.length;
+}
+
+/** Days since a date string */
 function daysSince(dateStr: string): number {
     const uploaded = new Date(dateStr);
     const now = new Date();
@@ -72,234 +138,684 @@ function daysSince(dateStr: string): number {
     return Math.max(1, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
 }
 
+/** Parse ISO 8601 duration to seconds */
+function parseDurationToSeconds(duration: string): number {
+    const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+    if (!match) return 0;
+    const hours = parseInt(match[1] ?? "0");
+    const minutes = parseInt(match[2] ?? "0");
+    const seconds = parseInt(match[3] ?? "0");
+    return hours * 3600 + minutes * 60 + seconds;
+}
+
+// ─── Core Scoring Functions ──────────────────────────────────────────────────
+
+/**
+ * Velocity Score using exponential decay weighting
+ * Recent views count more than old views
+ * Score 0-10: higher = faster growing content
+ */
 export function computeVelocityScore(videos: VideoData[]): {
     score: number;
     insight: string;
     topVideos: VideoData[];
+    weeklyGrowthRate: number;
 } {
-    if (videos.length === 0) return { score: 0, insight: "No videos found", topVideos: [] };
+    if (videos.length === 0) return { score: 0, insight: "No videos found", topVideos: [], weeklyGrowthRate: 0 };
 
-    const withVelocity = videos.map((v) => ({
-        ...v,
-        velocity: v.views / daysSince(v.uploadDate),
-    }));
+    const withDecayedVelocity = videos.map(v => {
+        const days = daysSince(v.uploadDate);
+        const rawVelocity = v.views / days;
+        const decayWeight = exponentialDecayWeight(days, 60);
+        return { ...v, velocity: rawVelocity, decayedVelocity: rawVelocity * decayWeight, days };
+    });
 
-    withVelocity.sort((a, b) => b.velocity - a.velocity);
+    withDecayedVelocity.sort((a, b) => b.decayedVelocity - a.decayedVelocity);
 
-    const maxVelocity = withVelocity[0].velocity;
-    const avgVelocity = withVelocity.reduce((sum, v) => sum + v.velocity, 0) / withVelocity.length;
+    const maxDecayedVelocity = withDecayedVelocity[0].decayedVelocity;
+    const avgVelocity = withDecayedVelocity.reduce((s, v) => s + v.velocity, 0) / withDecayedVelocity.length;
 
-    // Normalize: higher velocity = higher score
-    // Score based on whether videos are gaining traction quickly
-    const velocityRatio = maxVelocity > 0 ? Math.min(10, (maxVelocity / 1000) * 3) : 0;
-    const score = Math.min(10, velocityRatio);
+    // Compute weekly growth rate using EMA on sorted-by-date views
+    const sortedByDate = [...withDecayedVelocity].sort((a, b) =>
+        new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime()
+    );
+    const viewsOverTime = sortedByDate.map(v => v.views);
+    const ema7 = computeEMA(viewsOverTime, 7);
+    const ema30 = computeEMA(viewsOverTime, 30);
+    const lastEma7 = ema7[ema7.length - 1] ?? 0;
+    const lastEma30 = ema30[ema30.length - 1] ?? 1;
+    const weeklyGrowthRate = lastEma30 > 0 ? ((lastEma7 - lastEma30) / lastEma30) * 100 : 0;
 
-    const topVideos = withVelocity.slice(0, 5);
-    const insight = `Top video gaining ${Math.round(maxVelocity)} views/day. Avg: ${Math.round(avgVelocity)} views/day across ${videos.length} videos.`;
+    // Normalize: benchmark is 1000 views/day = score 5, 10000 = score 10
+    const score = Math.min(10, Math.log10(Math.max(1, maxDecayedVelocity)) * 2.5);
 
-    return { score, insight, topVideos };
+    const topVideos = withDecayedVelocity.slice(0, 5);
+    const insight = `Top video: ${Math.round(withDecayedVelocity[0].velocity).toLocaleString()} views/day. Avg: ${Math.round(avgVelocity).toLocaleString()} views/day. Weekly trend: ${weeklyGrowthRate > 0 ? "+" : ""}${weeklyGrowthRate.toFixed(1)}%`;
+
+    return { score, insight, topVideos, weeklyGrowthRate };
 }
 
+/**
+ * Saturation Score using competition density analysis
+ * Analyzes: upload frequency, channel diversity, view distribution
+ * Score 0-10: higher = less saturated = more opportunity
+ */
 export function computeSaturationScore(searchResults: SearchResult[]): {
     score: number;
     insight: string;
+    competitionLevel: "Low" | "Medium" | "High" | "Very High";
 } {
     if (searchResults.length === 0) {
-        return { score: 10, insight: "No results found — extremely low saturation." };
+        return { score: 10, insight: "No results found — extremely low saturation.", competitionLevel: "Low" };
     }
 
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
-    const recentUploads = searchResults.filter((r) => {
-        try {
-            return new Date(r.uploadDate) >= thirtyDaysAgo;
-        } catch {
-            return false;
-        }
+    const recentUploads = searchResults.filter(r => {
+        try { return new Date(r.uploadDate) >= thirtyDaysAgo; } catch { return false; }
     });
 
-    const recentCount = recentUploads.length;
+    const last90Days = searchResults.filter(r => {
+        try { return new Date(r.uploadDate) >= ninetyDaysAgo; } catch { return false; }
+    });
 
-    // Invert: fewer recent uploads = higher score (less saturated = more opportunity)
-    let score: number;
-    if (recentCount === 0) score = 10;
-    else if (recentCount <= 2) score = 8.5;
-    else if (recentCount <= 5) score = 7;
-    else if (recentCount <= 10) score = 5;
-    else if (recentCount <= 15) score = 3;
-    else score = 1.5;
+    // Channel diversity: fewer unique channels = less competition
+    const uniqueChannels = new Set(searchResults.map(r => r.channel)).size;
+    const channelDiversityRatio = uniqueChannels / searchResults.length;
 
-    const insight = `${recentCount} uploads in last 30 days out of top ${searchResults.length} results.`;
-    return { score, insight };
+    // View concentration: if top 3 videos have >80% of views, market is dominated
+    const totalViews = searchResults.reduce((s, r) => s + r.views, 0);
+    const sortedByViews = [...searchResults].sort((a, b) => b.views - a.views);
+    const top3Views = sortedByViews.slice(0, 3).reduce((s, r) => s + r.views, 0);
+    const viewConcentration = totalViews > 0 ? top3Views / totalViews : 0;
+
+    // Subscriber power: high-sub channels dominate
+    const avgSubscribers = searchResults.reduce((s, r) => s + (r.subscriberCount ?? 0), 0) / searchResults.length;
+
+    // Composite saturation — log-based penalty (gentle at low values, firm at high)
+    let score = 10;
+    // log(1 + n) grows slowly: 1 upload → -1.2, 5 → -2.6, 20 → -4.5
+    score -= Math.log1p(recentUploads.length) * 1.8;
+    score -= Math.log1p(last90Days.length) * 0.6;
+    score -= channelDiversityRatio * 3;
+    score -= viewConcentration * 2;
+    if (avgSubscribers > 1_000_000) score -= 2;
+    else if (avgSubscribers > 100_000) score -= 1;
+
+    score = Math.min(10, Math.max(0, score));
+
+    const competitionLevel: "Low" | "Medium" | "High" | "Very High" =
+        score >= 7 ? "Low" : score >= 5 ? "Medium" : score >= 3 ? "High" : "Very High";
+
+    const insight = `${recentUploads.length} uploads in 30 days, ${uniqueChannels} unique channels competing. View concentration: ${(viewConcentration * 100).toFixed(0)}% in top 3 videos.`;
+
+    return { score, insight, competitionLevel };
 }
 
+/**
+ * Frustration Score using NLP-based sentiment analysis
+ * Detects: pain points, unmet needs, content gaps from comments
+ * Score 0-10: higher = more audience frustration = more opportunity
+ */
 export function computeFrustrationScore(comments: CommentData[]): {
     score: number;
     topKeywords: string[];
+    painPoints: string[];
+    sentimentBreakdown: { frustrated: number; neutral: number; positive: number };
 } {
-    if (comments.length === 0) return { score: 0, topKeywords: [] };
+    if (comments.length === 0) {
+        return { score: 0, topKeywords: [], painPoints: [], sentimentBreakdown: { frustrated: 0, neutral: 0, positive: 0 } };
+    }
 
     const wordFreq = new Map<string, number>();
     let frustrationHits = 0;
+    let positiveHits = 0;
+    const painPointsMap = new Map<string, number>();
+
+    const POSITIVE_PHRASES = ["great", "amazing", "perfect", "excellent", "helpful", "thanks", "love", "best"];
 
     for (const comment of comments) {
         const text = comment.text.toLowerCase();
+        const weight = comment.likeCount ? Math.log(1 + comment.likeCount) : 1;
 
-        // Check frustration phrases
+        // Count ALL matching phrases, not just the first
+        let matchCount = 0;
         for (const phrase of FRUSTRATION_PHRASES) {
             if (text.includes(phrase)) {
-                frustrationHits++;
+                frustrationHits += weight;
+                matchCount++;
+                painPointsMap.set(phrase, (painPointsMap.get(phrase) ?? 0) + weight);
+            }
+        }
+        // Only flag as frustrated if at least one phrase matched
+        const isFrustrated = matchCount > 0;
+
+        let isPositive = false;
+        for (const phrase of POSITIVE_PHRASES) {
+            if (text.includes(phrase)) {
+                positiveHits += weight;
+                isPositive = true;
                 break;
             }
         }
 
-        // Word frequency (excluding stop words)
+        void isFrustrated; void isPositive; // suppress unused warnings
+
         const words = text
             .replace(/[^a-z0-9\s]/g, " ")
             .split(/\s+/)
-            .filter((w) => w.length > 3 && !STOP_WORDS.has(w));
+            .filter(w => w.length > 3 && !STOP_WORDS.has(w));
 
         for (const word of words) {
             wordFreq.set(word, (wordFreq.get(word) ?? 0) + 1);
         }
     }
 
-    // Top keywords by frequency
     const sorted = [...wordFreq.entries()]
         .sort((a, b) => b[1] - a[1])
-        .slice(0, 10)
+        .slice(0, 15)
         .map(([word]) => word);
 
-    const frustrationRatio = frustrationHits / comments.length;
-    const score = Math.min(10, frustrationRatio * 20); // 50% = score 10
+    const topPainPoints = [...painPointsMap.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([phrase]) => phrase);
 
-    return { score, topKeywords: sorted };
+    const total = comments.length;
+    // Normalize by total weighted possible, not raw count
+    const totalWeight = comments.reduce((s, c) => s + (c.likeCount ? Math.log(1 + c.likeCount) : 1), 0);
+    const frustrationRatio = totalWeight > 0 ? frustrationHits / totalWeight : 0;
+    const positiveRatio = totalWeight > 0 ? positiveHits / totalWeight : 0;
+
+    // Wilson score for reliability with corrected normalization
+    const reliableScore = wilsonScoreLowerBound(Math.round(frustrationHits), Math.max(total, 1)) * 10;
+    const score = Math.min(10, Math.max(0, reliableScore + frustrationRatio * 5));
+
+    return {
+        score,
+        topKeywords: sorted,
+        painPoints: topPainPoints,
+        sentimentBreakdown: {
+            frustrated: Math.round(frustrationRatio * 100),
+            neutral: Math.round((1 - frustrationRatio - positiveRatio) * 100),
+            positive: Math.round(positiveRatio * 100),
+        },
+    };
 }
 
+/**
+ * Abandonment Score: detects topics with high demand but no recent supply
+ * Uses: view-to-recency ratio, upload gap analysis
+ */
 export function computeAbandonmentScore(videos: VideoData[]): {
     score: number;
+    insight: string;
 } {
-    if (videos.length === 0) return { score: 0 };
+    if (videos.length === 0) return { score: 0, insight: "No data" };
 
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
-    const highPerformingVideos = videos.filter((v) => v.views > 50000);
-    const recentVideos = videos.filter((v) => {
-        try {
-            return new Date(v.uploadDate) >= thirtyDaysAgo;
-        } catch {
-            return false;
-        }
+    const highPerformingVideos = videos.filter(v => v.views > 50000);
+    const recentVideos = videos.filter(v => {
+        try { return new Date(v.uploadDate) >= thirtyDaysAgo; } catch { return false; }
+    });
+    const last90Videos = videos.filter(v => {
+        try { return new Date(v.uploadDate) >= ninetyDaysAgo; } catch { return false; }
     });
 
-    // High abandoned: many high-performing old videos, few recent uploads
-    if (highPerformingVideos.length >= 2 && recentVideos.length === 0) {
-        return { score: 10 };
-    }
-    if (highPerformingVideos.length >= 2 && recentVideos.length <= 1) {
-        return { score: 7.5 };
-    }
-    if (highPerformingVideos.length >= 1 && recentVideos.length === 0) {
-        return { score: 6 };
-    }
-    if (recentVideos.length === 0) {
-        return { score: 4 };
+    // Compute upload gap: days between most recent and second most recent
+    const sortedByDate = [...videos].sort((a, b) =>
+        new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()
+    );
+    const uploadGap = sortedByDate.length >= 2
+        ? daysSince(sortedByDate[1].uploadDate) - daysSince(sortedByDate[0].uploadDate)
+        : 0;
+
+    let score = 0;
+    let insight = "";
+
+    if (highPerformingVideos.length >= 3 && recentVideos.length === 0) {
+        score = 10;
+        insight = `${highPerformingVideos.length} high-performing videos (50K+ views) with NO recent uploads — prime abandoned niche`;
+    } else if (highPerformingVideos.length >= 2 && recentVideos.length === 0) {
+        score = 8.5;
+        insight = `${highPerformingVideos.length} viral videos but no uploads in 30 days — strong abandonment signal`;
+    } else if (highPerformingVideos.length >= 2 && last90Videos.length <= 1) {
+        score = 7;
+        insight = `High-performing content exists but upload frequency dropped significantly`;
+    } else if (uploadGap > 60) {
+        score = 5;
+        insight = `${uploadGap}-day gap between recent uploads — inconsistent coverage`;
+    } else if (recentVideos.length === 0) {
+        score = 4;
+        insight = "No recent uploads in this topic area";
+    } else {
+        score = 1;
+        insight = "Active content creation in this space";
     }
 
-    return { score: 1 };
+    return { score, insight };
 }
+
+/**
+ * Engagement Score using Wilson score interval
+ * More reliable than raw like/view ratio
+ */
+export function computeEngagementScore(videos: VideoData[]): {
+    score: number;
+    avgLikeRate: number;
+    avgCommentRate: number;
+    insight: string;
+} {
+    if (videos.length === 0) return { score: 5, avgLikeRate: 0, avgCommentRate: 0, insight: "No data" };
+
+    const videosWithData = videos.filter(v => v.views > 0);
+    if (videosWithData.length === 0) return { score: 5, avgLikeRate: 0, avgCommentRate: 0, insight: "No view data" };
+
+    const likeRates = videosWithData.map(v => v.likes / v.views);
+    const commentRates = videosWithData.map(v => v.comments / v.views);
+
+    const avgLikeRate = likeRates.reduce((s, r) => s + r, 0) / likeRates.length;
+    const avgCommentRate = commentRates.reduce((s, r) => s + r, 0) / commentRates.length;
+
+    // Industry benchmarks: like rate 2-5% = average, 5%+ = excellent
+    // Comment rate 0.1-0.5% = average, 0.5%+ = excellent
+    const likeNorm = Math.min(100, (avgLikeRate / 0.05) * 100);
+    const commentNorm = Math.min(100, (avgCommentRate / 0.005) * 100);
+
+    // Wilson score for reliability
+    const totalLikes = videosWithData.reduce((s, v) => s + v.likes, 0);
+    const totalViews = videosWithData.reduce((s, v) => s + v.views, 0);
+    const wilsonLike = wilsonScoreLowerBound(totalLikes, totalViews) * 100;
+
+    const rawScore = likeNorm * 0.5 + commentNorm * 0.3 + wilsonLike * 0.2;
+    const score = Math.min(10, rawScore / 10);
+
+    const insight = `Avg like rate: ${(avgLikeRate * 100).toFixed(2)}%, comment rate: ${(avgCommentRate * 100).toFixed(3)}%`;
+
+    return { score, avgLikeRate, avgCommentRate, insight };
+}
+
+/**
+ * Trend Momentum Score using EMA crossover
+ * Detects accelerating vs decelerating trends
+ */
+export function computeTrendMomentum(videos: VideoData[]): {
+    score: number;
+    trend: "accelerating" | "stable" | "decelerating";
+    insight: string;
+} {
+    if (videos.length < 5) return { score: 4, trend: "stable", insight: "Too few videos to detect a reliable trend — interpret with caution." };
+
+    const sortedByDate = [...videos].sort((a, b) =>
+        new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime()
+    );
+
+    const viewsPerDay = sortedByDate.map(v => v.views / daysSince(v.uploadDate));
+    const ema7 = computeEMA(viewsPerDay, Math.min(7, viewsPerDay.length));
+    const ema21 = computeEMA(viewsPerDay, Math.min(21, viewsPerDay.length));
+
+    const lastEma7 = ema7[ema7.length - 1] ?? 0;
+    const lastEma21 = ema21[ema21.length - 1] ?? 1;
+
+    const crossoverRatio = lastEma21 > 0 ? lastEma7 / lastEma21 : 1;
+
+    let trend: "accelerating" | "stable" | "decelerating";
+    let score: number;
+
+    if (crossoverRatio > 1.2) {
+        trend = "accelerating";
+        score = Math.min(10, 5 + (crossoverRatio - 1) * 10);
+    } else if (crossoverRatio > 0.8) {
+        trend = "stable";
+        score = 5;
+    } else {
+        trend = "decelerating";
+        score = Math.max(0, 5 - (1 - crossoverRatio) * 10);
+    }
+
+    const insight = `EMA7/EMA21 ratio: ${crossoverRatio.toFixed(2)}. Trend is ${trend}. ${trend === "accelerating" ? "Content demand is rising fast." : trend === "decelerating" ? "Interest may be waning." : "Steady demand."}`;
+
+    return { score, trend, insight };
+}
+
+/**
+ * Competition Score: how hard is it to rank?
+ * Analyzes: top channel subscriber counts, view dominance, content quality signals
+ */
+export function computeCompetitionScore(searchResults: SearchResult[]): {
+    score: number;
+    insight: string;
+    difficulty: "Easy" | "Moderate" | "Hard" | "Very Hard";
+} {
+    if (searchResults.length === 0) return { score: 10, insight: "No competition found", difficulty: "Easy" };
+
+    const avgSubscribers = searchResults.reduce((s, r) => s + (r.subscriberCount ?? 0), 0) / searchResults.length;
+    const maxViews = Math.max(...searchResults.map(r => r.views));
+    const avgViews = searchResults.reduce((s, r) => s + r.views, 0) / searchResults.length;
+
+    // Engagement quality of competitors
+    const avgLikeRate = searchResults.reduce((s, r) => s + (r.likes / Math.max(r.views, 1)), 0) / searchResults.length;
+
+    let score = 10;
+
+    // Subscriber penalty
+    if (avgSubscribers > 5_000_000) score -= 4;
+    else if (avgSubscribers > 1_000_000) score -= 3;
+    else if (avgSubscribers > 100_000) score -= 2;
+    else if (avgSubscribers > 10_000) score -= 1;
+
+    // View dominance penalty
+    if (maxViews > 10_000_000) score -= 2;
+    else if (maxViews > 1_000_000) score -= 1;
+
+    // High engagement = quality content = harder to beat
+    if (avgLikeRate > 0.05) score -= 1.5;
+    else if (avgLikeRate > 0.02) score -= 0.5;
+
+    // Many results = more competition
+    if (searchResults.length >= 15) score -= 1;
+
+    score = Math.min(10, Math.max(0, score));
+
+    const difficulty: "Easy" | "Moderate" | "Hard" | "Very Hard" =
+        score >= 7 ? "Easy" : score >= 5 ? "Moderate" : score >= 3 ? "Hard" : "Very Hard";
+
+    const insight = `Avg competitor: ${(avgSubscribers / 1000).toFixed(0)}K subs, ${(avgViews / 1000).toFixed(0)}K avg views. Difficulty: ${difficulty}`;
+
+    return { score, insight, difficulty };
+}
+
+// ─── Tag Generator ───────────────────────────────────────────────────────────
+
+export function generateOptimalTags(keyword: string, videos: VideoData[], topKeywords: string[]): string[] {
+    const tags = new Set<string>();
+    const kw = keyword.toLowerCase().trim();
+
+    // Primary keyword variations
+    tags.add(kw);
+    tags.add(`${kw} tutorial`);
+    tags.add(`${kw} guide`);
+    tags.add(`${kw} 2025`);
+    tags.add(`${kw} 2026`);
+    tags.add(`how to ${kw}`);
+    tags.add(`${kw} for beginners`);
+    tags.add(`learn ${kw}`);
+
+    // Extract high-frequency words from top video titles
+    const titleWords = new Map<string, number>();
+    for (const video of videos.slice(0, 20)) {
+        const words = video.title.toLowerCase()
+            .replace(/[^a-z0-9\s]/g, " ")
+            .split(/\s+/)
+            .filter(w => w.length > 3 && !STOP_WORDS.has(w));
+        for (const word of words) {
+            titleWords.set(word, (titleWords.get(word) ?? 0) + 1);
+        }
+    }
+
+    const topTitleWords = [...titleWords.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([w]) => w);
+
+    for (const word of topTitleWords) {
+        if (!kw.includes(word)) {
+            tags.add(`${kw} ${word}`);
+        }
+    }
+
+    // Add frustration keywords as tags (high search intent)
+    for (const kw2 of topKeywords.slice(0, 5)) {
+        tags.add(kw2);
+    }
+
+    return [...tags].slice(0, 30);
+}
+
+// ─── Upload Schedule Optimizer ───────────────────────────────────────────────
+
+export function computeOptimalUploadSchedule(videos: VideoData[]): {
+    bestDay: string;
+    bestHour: number;
+    dayDistribution: Record<string, number>;
+    hourDistribution: Record<number, number>;
+    insight: string;
+} {
+    const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const dayViews: Record<string, number> = {};
+    const hourViews: Record<number, number> = {};
+    const dayCounts: Record<string, number> = {};
+    const hourCounts: Record<number, number> = {};
+
+    for (const video of videos) {
+        const date = new Date(video.uploadDate);
+        const day = DAYS[date.getDay()];
+        const hour = date.getHours();
+
+        dayViews[day] = (dayViews[day] ?? 0) + video.views;
+        dayCounts[day] = (dayCounts[day] ?? 0) + 1;
+        hourViews[hour] = (hourViews[hour] ?? 0) + video.views;
+        hourCounts[hour] = (hourCounts[hour] ?? 0) + 1;
+    }
+
+    // Average views per upload day/hour
+    const dayAvg: Record<string, number> = {};
+    for (const day of DAYS) {
+        dayAvg[day] = dayCounts[day] ? (dayViews[day] ?? 0) / dayCounts[day] : 0;
+    }
+
+    const hourAvg: Record<number, number> = {};
+    for (let h = 0; h < 24; h++) {
+        hourAvg[h] = hourCounts[h] ? (hourViews[h] ?? 0) / hourCounts[h] : 0;
+    }
+
+    const bestDay = Object.entries(dayAvg).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "Tuesday";
+    const bestHour = Object.entries(hourAvg).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "14";
+
+    const insight = `Best upload day: ${bestDay} (avg ${(dayAvg[bestDay] / 1000).toFixed(1)}K views). Best hour: ${bestHour}:00 UTC.`;
+
+    return {
+        bestDay,
+        bestHour: parseInt(String(bestHour)),
+        dayDistribution: dayAvg,
+        hourDistribution: hourAvg,
+        insight,
+    };
+}
+
+// ─── Revenue Estimator ───────────────────────────────────────────────────────
+
+export function estimateRevenue(views: number, niche: string): {
+    low: number;
+    mid: number;
+    high: number;
+    cpmRange: { low: number; high: number };
+    insight: string;
+} {
+    // CPM benchmarks by niche (USD per 1000 views)
+    const CPM_RANGES: Record<string, { low: number; high: number }> = {
+        finance: { low: 12, high: 45 },
+        tech: { low: 8, high: 25 },
+        ai: { low: 10, high: 30 },
+        programming: { low: 8, high: 22 },
+        gaming: { low: 2, high: 8 },
+        education: { low: 5, high: 18 },
+        business: { low: 10, high: 35 },
+        health: { low: 6, high: 20 },
+        default: { low: 3, high: 12 },
+    };
+
+    const nicheKey = Object.keys(CPM_RANGES).find(k => niche.toLowerCase().includes(k)) ?? "default";
+    const cpmRange = CPM_RANGES[nicheKey];
+
+    // YouTube pays ~55% of ad revenue to creators
+    const creatorShare = 0.55;
+    const monetizedViewRate = 0.45; // ~45% of views are monetized
+
+    const monetizedViews = views * monetizedViewRate;
+    const low = (monetizedViews / 1000) * cpmRange.low * creatorShare;
+    const mid = (monetizedViews / 1000) * ((cpmRange.low + cpmRange.high) / 2) * creatorShare;
+    const high = (monetizedViews / 1000) * cpmRange.high * creatorShare;
+
+    const insight = `Estimated CPM: $${cpmRange.low}-$${cpmRange.high} for ${nicheKey} niche. Based on ${(monetizedViewRate * 100).toFixed(0)}% monetized views.`;
+
+    return { low: Math.round(low), mid: Math.round(mid), high: Math.round(high), cpmRange, insight };
+}
+
+// ─── View Estimator ──────────────────────────────────────────────────────────
+
+export function estimateVideoViews(
+    velocityScore: number,
+    saturationScore: number,
+    competitionScore: number,
+    avgChannelViews: number
+): { low: number; mid: number; high: number } {
+    const opportunityMultiplier = (velocityScore * 0.4 + saturationScore * 0.3 + competitionScore * 0.3) / 10;
+    const base = avgChannelViews > 0 ? avgChannelViews : 10000;
+
+    return {
+        low: Math.round(base * opportunityMultiplier * 0.5),
+        mid: Math.round(base * opportunityMultiplier * 1.5),
+        high: Math.round(base * opportunityMultiplier * 4),
+    };
+}
+
+// ─── Main Gap Builder ────────────────────────────────────────────────────────
 
 export function buildGapCandidates(input: ScoringInput): GapCandidate[] {
     const velocity = computeVelocityScore(input.videos);
     const saturation = computeSaturationScore(input.searchResults);
     const frustration = computeFrustrationScore(input.comments);
     const abandonment = computeAbandonmentScore(input.videos);
+    const engagement = computeEngagementScore(input.videos);
+    const trendMomentum = computeTrendMomentum(input.videos);
+    const competition = computeCompetitionScore(input.searchResults);
+    const schedule = computeOptimalUploadSchedule(input.videos);
 
-    // Weighted composite score
-    const compositeScore =
-        velocity.score * 0.30 +
-        frustration.score * 0.30 +
-        saturation.score * 0.25 +
-        abandonment.score * 0.15;
+    // Confidence based on data volume — penalise thin data harder
+    const videoConf = input.videos.length < 5
+        ? (input.videos.length / 5) * 0.3   // heavy penalty for <5 videos
+        : Math.min(input.videos.length / 30, 1) * 0.4;
+    const commentConf = input.comments.length === 0
+        ? 0
+        : Math.min(input.comments.length / 50, 1) * 0.3;
+    const searchConf = Math.min(input.searchResults.length / 15, 1) * 0.3;
+    const confidence = Math.min(1, videoConf + commentConf + searchConf);
+
+    // Dynamically boost abandonment when it fires strongly
+    const isStrongAbandonment = abandonment.score >= 7;
+    const compositeScore = isStrongAbandonment
+        ? velocity.score * 0.20 +
+          frustration.score * 0.20 +
+          saturation.score * 0.18 +
+          trendMomentum.score * 0.12 +
+          competition.score * 0.10 +
+          abandonment.score * 0.20
+        : velocity.score * 0.25 +
+          frustration.score * 0.20 +
+          saturation.score * 0.20 +
+          trendMomentum.score * 0.15 +
+          competition.score * 0.10 +
+          abandonment.score * 0.10;
 
     const roundedComposite = Math.round(compositeScore * 10) / 10;
-
-    // Generate 5 gap candidates based on templates + signals
     const keyword = input.keyword;
-    const topFrustrations = frustration.topKeywords.slice(0, 5);
+    const topFrustrations = frustration.topKeywords.slice(0, 8);
+    const suggestedTags = generateOptimalTags(keyword, input.videos, topFrustrations);
+    const avgViews = input.videos.length > 0
+        ? input.videos.reduce((s, v) => s + v.views, 0) / input.videos.length
+        : 10000;
+    const estimatedViews = estimateVideoViews(velocity.score, saturation.score, competition.score, avgViews);
+
+    const baseScores: ScoreBreakdown = {
+        velocityScore: velocity.score,
+        saturationScore: saturation.score,
+        frustrationScore: frustration.score,
+        abandonmentScore: abandonment.score,
+        engagementScore: engagement.score,
+        trendMomentum: trendMomentum.score,
+        competitionScore: competition.score,
+        compositeScore: roundedComposite,
+        confidence,
+    };
 
     const candidates: GapCandidate[] = [
         {
-            title: `Beginner-Focused ${keyword} Tutorial (2026 Updated)`,
+            title: `Complete ${keyword} Tutorial for Beginners (2026 Updated)`,
             angle: "beginner_explainer",
-            scores: {
-                velocityScore: velocity.score,
-                saturationScore: saturation.score,
-                frustrationScore: frustration.score,
-                abandonmentScore: abandonment.score,
-                compositeScore: roundedComposite,
-            },
+            scores: { ...baseScores, compositeScore: roundedComposite },
             topFrustrationKeywords: topFrustrations,
             velocityInsight: velocity.insight,
             saturationInsight: saturation.insight,
+            trendInsight: trendMomentum.insight,
+            competitionInsight: competition.insight,
+            suggestedTags,
+            estimatedViews,
+            bestUploadDay: schedule.bestDay,
+            bestUploadHour: schedule.bestHour,
         },
         {
-            title: `Why Most ${keyword} Tutorials Fail (and What Actually Works)`,
+            title: `Why Most ${keyword} Tutorials Fail (And What Actually Works)`,
             angle: "contrarian_critique",
-            scores: {
-                velocityScore: velocity.score,
-                saturationScore: saturation.score,
-                frustrationScore: frustration.score,
-                abandonmentScore: abandonment.score,
-                compositeScore: Math.round((roundedComposite - 0.3) * 10) / 10,
-            },
+            scores: { ...baseScores, compositeScore: Math.max(0, roundedComposite - 0.3) },
             topFrustrationKeywords: topFrustrations,
             velocityInsight: velocity.insight,
             saturationInsight: saturation.insight,
+            trendInsight: trendMomentum.insight,
+            competitionInsight: competition.insight,
+            suggestedTags,
+            estimatedViews,
+            bestUploadDay: schedule.bestDay,
+            bestUploadHour: schedule.bestHour,
         },
         {
-            title: `${keyword} for Solo Developers: The Practical Guide`,
-            angle: "practical_solo",
-            scores: {
-                velocityScore: velocity.score,
-                saturationScore: saturation.score,
-                frustrationScore: frustration.score,
-                abandonmentScore: abandonment.score,
-                compositeScore: Math.round((roundedComposite - 0.5) * 10) / 10,
-            },
+            title: `${keyword} in 2026: The Complete Practical Guide`,
+            angle: "practical_guide",
+            scores: { ...baseScores, compositeScore: Math.max(0, roundedComposite - 0.5) },
             topFrustrationKeywords: topFrustrations,
             velocityInsight: velocity.insight,
             saturationInsight: saturation.insight,
+            trendInsight: trendMomentum.insight,
+            competitionInsight: competition.insight,
+            suggestedTags,
+            estimatedViews,
+            bestUploadDay: schedule.bestDay,
+            bestUploadHour: schedule.bestHour,
         },
         {
-            title: `${keyword} Common Mistakes Beginners Make`,
+            title: `${keyword} Mistakes Beginners Make (And How to Fix Them)`,
             angle: "mistakes_avoidance",
-            scores: {
-                velocityScore: velocity.score,
-                saturationScore: saturation.score,
-                frustrationScore: frustration.score,
-                abandonmentScore: abandonment.score,
-                compositeScore: Math.round((roundedComposite - 0.7) * 10) / 10,
-            },
+            scores: { ...baseScores, compositeScore: Math.max(0, roundedComposite - 0.7) },
             topFrustrationKeywords: topFrustrations,
             velocityInsight: velocity.insight,
             saturationInsight: saturation.insight,
+            trendInsight: trendMomentum.insight,
+            competitionInsight: competition.insight,
+            suggestedTags,
+            estimatedViews,
+            bestUploadDay: schedule.bestDay,
+            bestUploadHour: schedule.bestHour,
         },
         {
             title: `${keyword} vs Alternatives: Which Should You Use in 2026?`,
             angle: "comparison",
-            scores: {
-                velocityScore: velocity.score,
-                saturationScore: saturation.score,
-                frustrationScore: frustration.score,
-                abandonmentScore: abandonment.score,
-                compositeScore: Math.round((roundedComposite - 0.9) * 10) / 10,
-            },
+            scores: { ...baseScores, compositeScore: Math.max(0, roundedComposite - 0.9) },
             topFrustrationKeywords: topFrustrations,
             velocityInsight: velocity.insight,
             saturationInsight: saturation.insight,
+            trendInsight: trendMomentum.insight,
+            competitionInsight: competition.insight,
+            suggestedTags,
+            estimatedViews,
+            bestUploadDay: schedule.bestDay,
+            bestUploadHour: schedule.bestHour,
         },
     ];
 
