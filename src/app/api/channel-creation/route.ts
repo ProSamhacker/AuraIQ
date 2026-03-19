@@ -134,10 +134,12 @@ export async function POST(req: NextRequest) {
         }
 
         const apiKey = process.env.YOUTUBE_API_KEY;
-        const geminiKey = process.env.GEMINI_API_KEY;
+        
+        const hasGroqKey = process.env.GROQ_API_KEY || process.env.GROQ_API_KEY_2 || process.env.GROQ_API_KEY_3;
 
-        if (!geminiKey) {
-            return NextResponse.json({ error: "AI service not configured" }, { status: 503 });
+        if (!hasGroqKey) {
+            console.error("[Channel Creation] 503 Error: No Groq API Keys configured in environment variables.");
+            return NextResponse.json({ error: "AI service not configured (Missing Groq Keys)" }, { status: 503 });
         }
 
         // ── Step 1: Fetch YouTube market data ────────────────────────────────
